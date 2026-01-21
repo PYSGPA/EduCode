@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
         type:String,
         required:true
     },
+    contactNumber:{
+        type:Number,
+        maxlength:10
+    },
     accountType:{
         type:String,
         required:true,
@@ -44,7 +48,6 @@ const userSchema = new mongoose.Schema({
     ],
     imageUrl:{
         type:String,
-        required:true
     },
     courseProgress:[
         {
