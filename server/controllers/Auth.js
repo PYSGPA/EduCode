@@ -2,6 +2,7 @@ const Otp = require("../models/Otp.js");
 const User = require("../models/User.js");
 const otpGenerator = require('otp-generator');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 //sendOtp
 exports.sendOtp = async (req, res) => {
@@ -24,7 +25,7 @@ exports.sendOtp = async (req, res) => {
       result = await User.findOne({otp});
     }
 
-    const otpGenerated = await Otp.create({ email, otp});
+    const otpGenerated = await Otp.create({ email, otp });
     res.status(200).json({
       success: true,
       data:otpGenerated,
@@ -78,8 +79,6 @@ exports.Signup = async (req, res) => {
 
     password = bcrypt.hash(password,10);
 
-    
-
     const user = await User.create({
       firstName,
       lastName,
@@ -108,4 +107,77 @@ exports.Signup = async (req, res) => {
 
 //login
 
+exports.login = async (req, res) => {
+  try {
+    const {
+      email,
+      password
+    } = req.body;
+
+    if(!email,!password){
+      return res.status(401).json({
+          success:false,
+          message:"login details missing"
+      });
+    };
+
+    const userexist = await User.findOne({email});
+    if(!userexist){
+      return res.status(401).json({
+        success:false,
+        message:"user doesn't exists, please signup first"
+      });
+    };
+
+    const loginCredentrials = bcrypt.compare(password,userexist.password);
+
+    if(!loginCredentrials){
+      return res.status(401).json({
+        success:false,
+        message:"login credentials are incorrect, please retry with correct credentials."
+      });
+    };
+
+    const payload = {
+      name: userexist.firstName,
+      email: email,
+      accountType: userexist.accountType
+    }
+    const token = jwt.sign(payload,SECRET_KEY,{expiresIn: "2h"});
+
+    if(!token){
+      return res.status(401).json({
+        success:false,
+        message:"token not created something went wrong"
+      });
+    }
+
+    userexist.token = token;
+    userexist.password = null;//hiding password
+
+    res.cookie('token', `Bearer ${token}`, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+      path: '/'
+    }).status(200).json({
+      success: true,
+      data: userexist,
+      message: "User login successfully",
+    })
+
+  } catch (err) {
+    console.log(`error occurs while user login, ${err}`);
+    res.status(500).json({
+      success: false,
+      message: "something went wrong while login",
+    });
+  }
+};
+
 //changePassword
+
+exports.changePassword = async(req,res)=>{
+  
+};
